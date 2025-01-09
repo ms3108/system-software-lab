@@ -1,0 +1,128 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+void main() {
+    FILE *fint, *ftab, *flen, *fsym, *fout;
+    int len, total_txtlen = 0, i;
+    char add[5], symadd[5], machine_code_from_optab[5],
+    startingaddress[10], temp[30], label[20], opcode[10], operand[10], operand_SYMATB[10], opcode_from_OPTAB[1];
+    char obj_code[1000];
+
+    fint = fopen("input.txt", "r");
+    flen = fopen("length.txt", "r");
+    ftab = fopen("optab.txt", "r");
+    fsym = fopen("symbol.txt", "r");
+    fout = fopen("output.txt", "w");
+
+    if (!fint || !flen || !ftab || !fsym || !fout) {
+        printf("Error opening files.\n");
+        return;
+    }
+
+    fscanf(fint, "%s%s%s%s", add, label, opcode, operand);
+    if (strcmp(opcode, "START") == 0) {
+        strcpy(startingaddress, operand);
+        fscanf(flen, "%d", &len);                                                                   // Program length
+    }
+
+
+
+    fprintf(fout, "H^%s^%s^%d\n", label, startingaddress, len);
+    fprintf(fout, "T^00%s^", startingaddress);
+
+    obj_code[0] = '\0';                                                                              // Empty object code buffer
+
+    int locctr = strtol(startingaddress, NULL, 16);                                              // Start address in hex
+
+
+
+
+
+
+    while (  fscanf(fint, "%s%s%s%s", add, label, opcode, operand) !=EOF   ) {
+
+
+
+        if (strcmp(opcode, "END") == 0) {
+            break;
+        }
+
+        rewind(ftab);
+        int opcode_found = 0;
+
+        while (fscanf(ftab, "%s%s", opcode_from_OPTAB, machine_code_from_optab) != EOF) {
+            if (strcmp(opcode, opcode_from_OPTAB) == 0) {
+                                                                                                 // Opcode found, search SYMTAB for operand
+                rewind(fsym);
+                while (fscanf(fsym, "%s%s", symadd, operand_SYMATB) != EOF) {
+
+
+
+                    if (strcmp(operand, operand_SYMATB) == 0) {
+                        strcat(obj_code, machine_code_from_optab);                                                                         // Add opcode
+                        strcat(obj_code, symadd);                                                     // Add symbol address
+                        strcat(obj_code,"^");
+
+                        total_txtlen += 3;                                                              // 3 bytes for opcode + address
+                        locctr += 3;                                                        // Increment LOCCTR by 3 bytes for instruction
+                        break;
+                    }
+                }
+                opcode_found = 1;
+                break;
+            }
+        }
+
+
+        if (!opcode_found) {
+            if (strcmp(opcode, "BYTE") == 0) {
+
+                int operand_len = strlen(operand) - 3;
+                for (i = 2;  i < 2 + operand_len    ; i++) {
+                    sprintf(temp, "%02X", operand[i]);
+                    strcat(obj_code, temp);
+                }
+                strcat(obj_code, "^");
+
+                total_txtlen += operand_len;
+                locctr += operand_len;
+            }
+
+            else if (strcmp(opcode, "WORD") == 0) {
+
+                sprintf(temp, "%06X", atoi(operand));
+                strcat(obj_code, temp);
+                total_txtlen += 3;                                                       // 3 bytes for WORD
+                locctr += 3;                                                                    // WORD is 3 bytes
+
+
+            }
+
+
+            else if (strcmp(opcode, "RESB") == 0) {
+                int resb_len = atoi(operand);                                                        // Number of bytes to reserve
+                locctr += resb_len;                                                                    // Don't generate object code, just skip the space
+            }
+
+            else if (strcmp(opcode, "RESW") == 0) {
+                int resw_len = atoi(operand);                                                   // Number of words to reserve
+                locctr += 3 * resw_len;                                                         // Each word is 3 bytes, don't generate object code
+            }
+        }
+    }
+
+                                                                                 // Write the object code to the file
+    fprintf(fout, "%02X^%s", total_txtlen, obj_code);
+    fprintf(fout, "\nE^00%s", startingaddress);
+
+
+    fclose(fint);
+    fclose(ftab);
+    fclose(fsym);
+    fclose(flen);
+    fclose(fout);
+
+    printf("Total Text Record Length (in decimal): %d\n", total_txtlen);
+}
+
