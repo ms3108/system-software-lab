@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main() {
+    FILE *fp, *fop;
+    char type[30], name[30], address[20], length[30], input[30],sa[30],tname[30];
+    int add;
+
+    fp = fopen("objectcode.txt", "r");
+    fop = fopen("output.txt", "w");
+
+    if (fp == NULL || fop == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+
+
+
+    fscanf(fp, "%s%s%s%s", type, name, address, length);
+    strcpy(sa,address);
+printf("enter name of pgm:");
+scanf("%s",tname);
+
+
+if (strcmp(name,tname) == 0) {
+    fscanf(fp, "%s", input);
+
+    fprintf(fop,"pgm name from objcode: %s\n",name);
+
+    while (strcmp(input, "E") != 0) {
+        if (strcmp(input, "T") == 0) {
+            fscanf(fp, "%s%s", address, length);
+            add = atoi(address);
+
+            while (fscanf(fp, "%s", input) != EOF && strcmp(input, "$") != 0) {
+
+
+                for (int i=0;i<strlen(input);i+=2) {
+                    fprintf(fop, "%06d %c%c\n", add, input[i], input[i+1]);
+                    add++;
+                }
+
+            }
+        }
+
+        fscanf(fp, "%s", input);
+    }
+
+    fprintf(fop,"Jump to address %s to start execution",sa);
+
+
+}
+else{printf("name of pgm is incorrect");}
+
+
+
+    fclose(fp);
+    fclose(fop);
+
+    return 0;
+}
+
+
+
+
+/*
+input.txt
+H COPY 001000 0035
+T 001000 0C 001003 071009 $
+T 002000 03 111111 $
+E 001000
+*/
